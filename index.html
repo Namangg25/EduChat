@@ -1,37 +1,113 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>EduChat AI</title>
   <style>
     body {
       background-color: #1e1e1e;
-      color: #ffffff;
+      color: #fff;
       font-family: Arial, sans-serif;
+      padding: 20px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: flex-start;
-      min-height: 100vh;
-      margin: 0;
-      padding: 20px;
     }
-    iframe {
-      border: none;
+    #chatbox {
       width: 100%;
-      max-width: 800px;
-      height: 90vh;
+      max-width: 600px;
+      height: 70vh;
+      overflow-y: auto;
+      background: #2a2a2a;
+      padding: 15px;
       border-radius: 10px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+      margin-bottom: 15px;
     }
-    h1 {
-      margin-bottom: 20px;
+    .msg {
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 8px;
+      white-space: pre-wrap;
+    }
+    .user { background: #10a37f; align-self: flex-end; }
+    .bot { background: #444; }
+    #inputArea {
+      display: flex;
+      max-width: 600px;
+      width: 100%;
+    }
+    input {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 6px 0 0 6px;
+      font-size: 16px;
+    }
+    button {
+      padding: 10px;
+      background: #10a37f;
+      color: #fff;
+      border: none;
+      border-radius: 0 6px 6px 0;
+      font-size: 16px;
     }
   </style>
 </head>
 <body>
-  <h1>EduChat 🤖 – Ask Me Anything!</h1>
-  <iframe src="https://openchat.team/chat" title="EduChat AI"></iframe>
+  <h1>EduChat AI 🤖</h1>
+  <div id="chatbox"></div>
+  <div id="inputArea">
+    <input type="text" id="userInput" placeholder="Ask anything..." />
+    <button onclick="sendMessage()">Send</button>
+  </div>
+
+  <script>
+    const chatbox = document.getElementById("chatbox");
+
+    function appendMsg(role, text) {
+      const div = document.createElement("div");
+      div.className = `msg ${role}`;
+      div.textContent = text;
+      chatbox.appendChild(div);
+      chatbox.scrollTop = chatbox.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById("userInput");
+      const text = input.value.trim();
+      if (!text) return;
+
+      appendMsg("user", text);
+      appendMsg("bot", "Typing...");
+      input.value = "";
+
+      try {
+        const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer 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"  // ⬅️ REPLACE THIS LINE
+          },
+          body: JSON.stringify({
+            model: "mistral/mistral-7b-instruct",
+            messages: [
+              { role: "system", content: "You are a helpful and friendly AI tutor named EduChat." },
+              { role: "user", content: text }
+            ]
+          })
+        });
+
+        const data = await res.json();
+        chatbox.removeChild(chatbox.lastChild);
+
+        const reply = data.choices?.[0]?.message?.content || "Sorry, no reply.";
+        appendMsg("bot", reply);
+      } catch (e) {
+        chatbox.removeChild(chatbox.lastChild);
+        appendMsg("bot", "⚠️ Error: Can't connect to AI.");
+      }
+    }
+  </script>
 </body>
 </html>
